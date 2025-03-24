@@ -3,13 +3,16 @@ import ctypes
 import os
 import time
 import threading
+import sys
 
 app = Flask(__name__)
 
+# Load the shared library
 cuda_lib = ctypes.CDLL('./simple_bitcoin_miner.so')
 cuda_lib.mine.restype = ctypes.c_uint32
 cuda_lib.get_hash_rate.restype = ctypes.c_uint32
 
+# Global variables
 mining_active = False
 mining_thread = None
 start_time = 0
@@ -44,7 +47,13 @@ def mining_task():
 
 @app.route('/')
 def index():
+    print("Serving index page")
     return render_template('index.html')
+
+@app.route('/guardian')
+def guardian():
+    print("Serving guardian page")
+    return render_template('guardian.html')
 
 @app.route('/api/start', methods=['POST'])
 def start_mining():
@@ -88,8 +97,11 @@ def get_status():
     })
 
 if __name__ == '__main__':
+    # Create templates directory if it doesn't exist
     os.makedirs('templates', exist_ok=True)
+    os.makedirs('static', exist_ok=True)
     
+    # Ensure template files exist
     if not os.path.exists('templates/index.html'):
         with open('templates/index.html', 'w') as f:
             f.write('''<!DOCTYPE html>
@@ -97,4 +109,16 @@ if __name__ == '__main__':
 ...HTML template content (omitted for brevity)...
 </html>''')
     
+    # Try to import and integrate CryptoGuardian
+    try:
+        print("Importing CryptoGuardian...")
+        from crypto_guardian import integrate_guardian
+        integrate_guardian(app)
+        print("CryptoGuardian imported and integrated successfully")
+    except Exception as e:
+        print(f"Error importing CryptoGuardian: {e}", file=sys.stderr)
+        print("Guardian functionality will not be available")
+    
+    # Start the Flask server with debugging enabled
+    print("Starting Flask server...")
     app.run(host='0.0.0.0', port=8080, debug=True)
