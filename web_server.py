@@ -4,6 +4,9 @@ import os
 import time
 import threading
 import sys
+import json
+from transaction_simulator import transaction_simulator
+from transaction_analyzer import transaction_analyzer
 
 app = Flask(__name__)
 
@@ -18,6 +21,10 @@ mining_thread = None
 start_time = 0
 hash_rate_history = []
 found_solutions = []
+
+# Transaction processing thread
+transaction_process_thread = None
+transaction_processing = False
 
 def mining_task():
     global mining_active, hash_rate_history
@@ -45,6 +52,18 @@ def mining_task():
         
         time.sleep(0.1)
 
+def transaction_processing_task():
+    """Process transactions from simulator to analyzer"""
+    global transaction_processing
+    
+    print("Transaction processing task started")
+    while transaction_processing:
+        # Get transaction from simulator and add to analyzer
+        transaction = transaction_simulator.get_transaction(block=True, timeout=1.0)
+        if transaction:
+            transaction_analyzer.add_transaction(transaction)
+        time.sleep(0.01)  # Small delay to prevent CPU hogging
+
 @app.route('/')
 def index():
     print("Serving index page")
@@ -54,6 +73,11 @@ def index():
 def guardian():
     print("Serving guardian page")
     return render_template('guardian.html')
+
+@app.route('/fraud-detection')
+def fraud_detection():
+    print("Serving fraud detection page")
+    return render_template('fraud_detection.html')
 
 @app.route('/api/start', methods=['POST'])
 def start_mining():
@@ -95,6 +119,117 @@ def get_status():
         "hashRateHistory": hash_rate_history,
         "solutions": found_solutions
     })
+
+# Fraud Detection API Routes
+
+@app.route('/api/fraud-detection/start-simulator', methods=['POST'])
+def start_transaction_simulator():
+    """Start the transaction simulator"""
+    result = transaction_simulator.start_simulation()
+    # Also start the transaction processing thread if analyzer is running
+    if result and transaction_analyzer.is_analyzing:
+        start_transaction_processing()
+    return jsonify({"status": "started" if result else "already_running"})
+
+@app.route('/api/fraud-detection/stop-simulator', methods=['POST'])
+def stop_transaction_simulator():
+    """Stop the transaction simulator"""
+    result = transaction_simulator.stop_simulation()
+    # If we're also stopping the analyzer, stop the processing thread
+    if result:
+        stop_transaction_processing()
+    return jsonify({"status": "stopped" if result else "not_running"})
+
+@app.route('/api/fraud-detection/start-analyzer', methods=['POST'])
+def start_transaction_analyzer():
+    """Start the transaction analyzer"""
+    result = transaction_analyzer.start_analyzer()
+    # Also start the transaction processing thread if simulator is running
+    if result and transaction_simulator.is_running:
+        start_transaction_processing()
+    return jsonify({"status": "started" if result else "already_running"})
+
+@app.route('/api/fraud-detection/stop-analyzer', methods=['POST'])
+def stop_transaction_analyzer():
+    """Stop the transaction analyzer"""
+    result = transaction_analyzer.stop_analyzer()
+    # If we're also stopping the simulator, stop the processing thread
+    if result:
+        stop_transaction_processing()
+    return jsonify({"status": "stopped" if result else "not_running"})
+
+def start_transaction_processing():
+    """Start the transaction processing thread"""
+    global transaction_process_thread, transaction_processing
+    if not transaction_processing:
+        transaction_processing = True
+        transaction_process_thread = threading.Thread(target=transaction_processing_task)
+        transaction_process_thread.daemon = True
+        transaction_process_thread.start()
+        return True
+    return False
+
+def stop_transaction_processing():
+    """Stop the transaction processing thread"""
+    global transaction_processing, transaction_process_thread
+    if transaction_processing and not (transaction_simulator.is_running and transaction_analyzer.is_analyzing):
+        transaction_processing = False
+        if transaction_process_thread:
+            transaction_process_thread.join(timeout=2.0)
+        return True
+    return False
+
+@app.route('/api/fraud-detection/simulator-status', methods=['GET'])
+def get_simulator_status():
+    """Get current status of the transaction simulator"""
+    return jsonify(transaction_simulator.get_status())
+
+@app.route('/api/fraud-detection/analyzer-status', methods=['GET'])
+def get_analyzer_status():
+    """Get current status of the transaction analyzer"""
+    return jsonify(transaction_analyzer.get_status())
+
+@app.route('/api/fraud-detection/recent-transactions', methods=['GET'])
+def get_recent_transactions():
+    """Get most recent transactions"""
+    limit = int(request.args.get('limit', 10))
+    return jsonify({"transactions": transaction_simulator.get_recent_transactions(limit)})
+
+@app.route('/api/fraud-detection/recent-analyses', methods=['GET'])
+def get_recent_analyses():
+    """Get most recent analysis results"""
+    limit = int(request.args.get('limit', 20))
+    return jsonify({"analyses": transaction_analyzer.get_all_results(limit)})
+
+@app.route('/api/fraud-detection/recent-anomalies', methods=['GET'])
+def get_recent_anomalies():
+    """Get most recent anomalies"""
+    limit = int(request.args.get('limit', 10))
+    return jsonify({"anomalies": transaction_analyzer.get_recent_anomalies(limit)})
+
+@app.route('/api/fraud-detection/set-threshold', methods=['POST'])
+def set_anomaly_threshold():
+    """Set the anomaly threshold"""
+    data = request.get_json()
+    if 'threshold' in data:
+        threshold = float(data['threshold'])
+        transaction_analyzer.anomaly_threshold = threshold
+        return jsonify({"status": "success", "threshold": threshold})
+    return jsonify({"status": "error", "message": "No threshold provided"})
+
+@app.route('/api/fraud-detection/transactions-by-id', methods=['POST'])
+def get_transactions_by_id():
+    """Get transactions by their IDs"""
+    data = request.get_json()
+    if 'ids' in data and isinstance(data['ids'], list):
+        # Filter transactions from history that match the requested IDs
+        matching_transactions = []
+        for tx in transaction_simulator.transactions_history:
+            if tx['transaction_id'] in data['ids']:
+                matching_transactions.append(tx)
+        
+        return jsonify({"transactions": matching_transactions})
+    return jsonify({"status": "error", "message": "Invalid ID list"})
 
 if __name__ == '__main__':
     # Create templates directory if it doesn't exist

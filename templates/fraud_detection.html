@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Fraud Detection - CUDA-powered</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { padding: 20px; background-color: #f8f9fa; }
+        .card { margin-bottom: 20px; }
+        .stats-value { font-size: 24px; font-weight: bold; }
+        .transaction-log { height: 200px; overflow-y: auto; font-family: monospace; }
+        .chart-container { height: 250px; }
+        .fraud-high { color: #dc3545; font-weight: bold; }
+        .fraud-medium { color: #fd7e14; font-weight: bold; }
+        .fraud-low { color: #ffc107; }
+        .metric-box {
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            text-align: center;
+            height: 100%;
+        }
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 0;
+        }
+        .metric-label {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .bg-gradient-primary { background: linear-gradient(135deg, #2C3E50, #4CA1AF); }
+        .bg-gradient-success { background: linear-gradient(135deg, #134E5E, #71B280); }
+        .bg-gradient-danger { background: linear-gradient(135deg, #CB356B, #BD3F32); }
+        .bg-gradient-info { background: linear-gradient(135deg, #36D1DC, #5B86E5); }
+        .pulse-animation {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        .transaction-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid #ced4da;
+        }
+        .transaction-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+        .transaction-fraud {
+            border-left: 4px solid #dc3545;
+        }
+        .badge-anomaly {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light mb-4">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="/">
+                    <img src="https://img.icons8.com/fluency/48/000000/cyber-security.png" width="30" height="30" class="d-inline-block align-text-top me-2">
+                    Financial Fraud Detection
+                </a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">Bitcoin Miner</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/guardian">AI Security</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/fraud-detection">Fraud Detection</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h1 class="display-5">Financial Fraud Detection</h1>
+                <p class="lead">GPU-accelerated SHA-256 for real-time anomaly detection</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="status-badge p-2 rounded" id="system-status">
+                    SYSTEM INACTIVE
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card h-100">
+                    <div class="card-body p-0">
+                        <div class="metric-box bg-gradient-primary">
+                            <p class="metric-value" id="transaction-rate">0</p>
+                            <p class="metric-label">Transactions/Sec</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100">
+                    <div class="card-body p-0">
+                        <div class="metric-box bg-gradient-info">
+                            <p class="metric-value" id="total-transactions">0</p>
+                            <p class="metric-label">Processed Transactions</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100">
+                    <div class="card-body p-0">
+                        <div class="metric-box bg-gradient-danger">
+                            <p class="metric-value" id="fraud-detected">0</p>
+                            <p class="metric-label">Fraudulent Activities</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100">
+                    <div class="card-body p-0">
+                        <div class="metric-box bg-gradient-success">
+                            <p class="metric-value" id="detection-accuracy">0%</p>
+                            <p class="metric-label">Detection Accuracy</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="row">
+            <!-- Transactions and Controls -->
+            <div class="col-md-4">
+                <!-- Control panel -->
+                <div class="card mb-4">
+                    <div class="card-header">Control Panel</div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <h5>Transaction Simulator</h5>
+                                <button id="start-simulator" class="btn btn-primary me-2">Start</button>
+                                <button id="stop-simulator" class="btn btn-secondary" disabled>Stop</button>
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <h5>Fraud Detector</h5>
+                                <button id="start-analyzer" class="btn btn-primary me-2">Start</button>
+                                <button id="stop-analyzer" class="btn btn-secondary" disabled>Stop</button>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="form-group">
+                                    <label for="threshold-slider">Anomaly Threshold</label>
+                                    <input type="range" class="form-range" min="0.1" max="0.9" step="0.05" value="0.2" id="threshold-slider">
+                                    <div class="d-flex justify-content-between">
+                                        <span>0.1</span>
+                                        <span id="threshold-value">0.2</span>
+                                        <span>0.9</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transaction Stream -->
+                <div class="card">
+                    <div class="card-header">Live Transaction Stream</div>
+                    <div class="card-body p-0">
+                        <div id="transaction-stream" class="transaction-log p-3"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Column -->
+            <div class="col-md-8">
+                <div class="row">
+                    <!-- Anomaly Score Chart -->
+                    <div class="col-md-12">
+                        <div class="card mb-4">
+                            <div class="card-header">Real-time Fraud Detection</div>
+                            <div class="card-body chart-container">
+                                <canvas id="anomaly-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Anomaly Distribution Chart -->
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Anomaly Distribution</div>
+                            <div class="card-body chart-container">
+                                <canvas id="distribution-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fraud Types Chart -->
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">Fraud Types</div>
+                            <div class="card-body chart-container">
+                                <canvas id="fraud-types-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fraud Alerts Section -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span>Fraud Alerts</span>
+                        <span class="badge bg-danger" id="alerts-counter">0</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="fraud-alerts-container">
+                            <!-- Fraud alerts will be inserted here -->
+                            <div class="col-12 text-center py-4 text-muted">
+                                <p>No fraud alerts detected yet</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Modal -->
+        <div class="modal fade" id="statistics-modal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Fraud Detection Statistics</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body" id="statistics-content">
+                        <!-- Statistics content will be inserted here -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="export-stats">Export to CSV</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize charts
+        const anomalyCtx = document.getElementById('anomaly-chart').getContext('2d');
+        const distributionCtx = document.getElementById('distribution-chart').getContext('2d');
+        const fraudTypesCtx = document.getElementById('fraud-types-chart').getContext('2d');
+        
+        // Anomaly chart (line chart)
+        const anomalyChart = new Chart(anomalyCtx, {
+            type: 'line',
+            data: {
+                labels: Array(20).fill(''),
+                datasets: [{
+                    label: 'Transaction Anomaly Score',
+                    data: Array(20).fill(0),
+                    borderColor: '#36A2EB',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    fill: true,
+                    tension: 0.4
+                }, {
+                    label: 'Threshold',
+                    data: Array(20).fill(0.2),
+                    borderColor: '#FF6384',
+                    borderDash: [5, 5],
+                    borderWidth: 2,
+                    fill: false,
+                    pointRadius: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 1,
+                        title: {
+                            display: true,
+                            text: 'Anomaly Score'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Transactions (recent)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Distribution chart (histogram)
+        const distributionChart = new Chart(distributionCtx, {
+            type: 'bar',
+            data: {
+                labels: ['0.0-0.1', '0.1-0.2', '0.2-0.3', '0.3-0.4', '0.4-0.5', '0.5-0.6', '0.6-0.7', '0.7-0.8', '0.8-0.9', '0.9-1.0'],
+                datasets: [{
+                    label: 'Score Distribution',
+                    data: Array(10).fill(0),
+                    backgroundColor: [
+                        'rgba(75, 192, 192, 0.5)',
+                        'rgba(75, 192, 192, 0.5)',
+                        'rgba(255, 206, 86, 0.5)',
+                        'rgba(255, 206, 86, 0.5)',
+                        'rgba(255, 159, 64, 0.5)',
+                        'rgba(255, 159, 64, 0.5)',
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(255, 99, 132, 0.5)'
+                    ],
+                    borderColor: [
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(255, 159, 64, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(255, 99, 132, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Count'
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Anomaly Score Range'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Fraud Types chart (pie chart)
+        const fraudTypesChart = new Chart(fraudTypesCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Unusual Location', 'Unusual Amount', 'Frequency Attack', 'Other'],
+                datasets: [{
+                    data: [0, 0, 0, 0],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(255, 206, 86, 1)',
+                        'rgba(75, 192, 192, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                    }
+                }
+            }
+        });
+
+        // DOM Elements
+        const startSimulatorBtn = document.getElementById('start-simulator');
+        const stopSimulatorBtn = document.getElementById('stop-simulator');
+        const startAnalyzerBtn = document.getElementById('start-analyzer');
+        const stopAnalyzerBtn = document.getElementById('stop-analyzer');
+        const thresholdSlider = document.getElementById('threshold-slider');
+        const thresholdValue = document.getElementById('threshold-value');
+        const transactionStream = document.getElementById('transaction-stream');
+        const systemStatus = document.getElementById('system-status');
+        const transactionRateEl = document.getElementById('transaction-rate');
+        const totalTransactionsEl = document.getElementById('total-transactions');
+        const fraudDetectedEl = document.getElementById('fraud-detected');
+        const detectionAccuracyEl = document.getElementById('detection-accuracy');
+        const alertsCounter = document.getElementById('alerts-counter');
+        const fraudAlertsContainer = document.getElementById('fraud-alerts-container');
+        
+        // Global variables
+        let simulatorRunning = false;
+        let analyzerRunning = false;
+        let updateInterval = null;
+        let currentThreshold = 0.2;
+        let fraudTypes = {
+            'unusual_location': 0,
+            'unusual_amount': 0,
+            'unusual_frequency': 0,
+            'other': 0
+        };
+        let scoreDistribution = Array(10).fill(0);
+        let alertCount = 0;
+        
+        // Function to log messages in the transaction stream
+        function logTransaction(message, isAnomaly = false) {
+            const now = new Date();
+            const timestamp = now.toTimeString().split(' ')[0];
+            const className = isAnomaly ? 'fraud-medium' : '';
+            
+            transactionStream.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            transactionStream.scrollTop = transactionStream.scrollHeight;
+            
+            // Keep only the last 100 messages
+            const messages = transactionStream.children;
+            if (messages.length > 100) {
+                transactionStream.removeChild(messages[0]);
+            }
+        }
+        
+        // Function to format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD'
+            }).format(amount);
+        }
+        
+        // Function to update the anomaly threshold
+        thresholdSlider.addEventListener('input', function() {
+            currentThreshold = parseFloat(this.value);
+            thresholdValue.textContent = currentThreshold.toFixed(2);
+            
+            // Update threshold line in chart
+            anomalyChart.data.datasets[1].data = Array(anomalyChart.data.labels.length).fill(currentThreshold);
+            anomalyChart.update();
+            
+            // Update server-side threshold
+            fetch('/api/fraud-detection/set-threshold', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ threshold: currentThreshold })
+            });
+        });
+        
+        // Function to add a fraud alert card
+        function addFraudAlert(transaction, analysis) {
+            // Get container and update counter
+            alertCount++;
+            alertsCounter.textContent = alertCount;
+            
+            // Clear "no alerts" message if present
+            if (fraudAlertsContainer.querySelector('.text-muted')) {
+                fraudAlertsContainer.innerHTML = '';
+            }
+            
+            // Generate severity class and color
+            let severityClass = '';
+            let severityText = '';
+            if (analysis.anomaly_score > 0.7) {
+                severityClass = 'bg-danger';
+                severityText = 'High Risk';
+            } else if (analysis.anomaly_score > 0.4) {
+                severityClass = 'bg-warning';
+                severityText = 'Medium Risk';
+            } else {
+                severityClass = 'bg-info';
+                severityText = 'Low Risk';
+            }
+            
+            // Format the timestamp
+            const timestamp = new Date(transaction.timestamp);
+            const formattedTime = timestamp.toLocaleTimeString();
+            
+            // Create alert card
+            const alertCard = document.createElement('div');
+            alertCard.className = 'col-md-6 mb-3';
+            alertCard.innerHTML = `
+                <div class="card transaction-card transaction-fraud position-relative">
+                    <div class="badge ${severityClass} badge-anomaly">${severityText}</div>
+                    <div class="card-body">
+                        <h5 class="card-title">${transaction.user_id}</h5>
+                        <h6 class="card-subtitle mb-2 text-muted">${formattedTime}</h6>
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <strong>Amount:</strong> ${formatCurrency(transaction.amount)}
+                            </div>
+                            <div class="col-6">
+                                <strong>Location:</strong> ${transaction.location}
+                            </div>
+                        </div>
+                        <div class="row mb-2">
+                            <div class="col-6">
+                                <strong>Type:</strong> ${transaction.type}
+                            </div>
+                            <div class="col-6">
+                                <strong>Score:</strong> <span class="text-danger">${analysis.anomaly_score.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-danger" role="progressbar" 
+                                 style="width: ${analysis.anomaly_score * 100}%" 
+                                 aria-valuenow="${analysis.anomaly_score * 100}" 
+                                 aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add to container (at the beginning)
+            fraudAlertsContainer.insertBefore(alertCard, fraudAlertsContainer.firstChild);
+            
+            // Keep only the latest 8 alerts
+            if (fraudAlertsContainer.children.length > 8) {
+                fraudAlertsContainer.removeChild(fraudAlertsContainer.lastChild);
+            }
+        }
+        
+        // Function to update fraud types chart
+        function updateFraudTypesChart() {
+            fraudTypesChart.data.datasets[0].data = [
+                fraudTypes.unusual_location,
+                fraudTypes.unusual_amount,
+                fraudTypes.unusual_frequency,
+                fraudTypes.other
+            ];
+            fraudTypesChart.update();
+        }
+        
+        // Function to update distribution chart
+        function updateDistributionChart() {
+            distributionChart.data.datasets[0].data = scoreDistribution;
+            distributionChart.update();
+        }
+        
+        // Function to update status indicators
+        function updateSystemStatus() {
+            if (simulatorRunning && analyzerRunning) {
+                systemStatus.textContent = "SYSTEM ACTIVE";
+                systemStatus.className = "status-badge p-2 rounded bg-success text-white";
+            } else if (simulatorRunning || analyzerRunning) {
+                systemStatus.textContent = "SYSTEM PARTIALLY ACTIVE";
+                systemStatus.className = "status-badge p-2 rounded bg-warning text-dark";
+            } else {
+                systemStatus.textContent = "SYSTEM INACTIVE";
+                systemStatus.className = "status-badge p-2 rounded bg-danger text-white";
+            }
+        }
+        
+        // Start simulator
+        startSimulatorBtn.addEventListener('click', function() {
+            fetch('/api/fraud-detection/start-simulator', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'started') {
+                        simulatorRunning = true;
+                        startSimulatorBtn.disabled = true;
+                        stopSimulatorBtn.disabled = false;
+                        logTransaction('Transaction simulator started');
+                        updateSystemStatus();
+                        
+                        // If both are now running, start the update interval
+                        if (simulatorRunning && analyzerRunning && !updateInterval) {
+                            startUpdateInterval();
+                        }
+                    }
+                });
+        });
+        
+        // Stop simulator
+        stopSimulatorBtn.addEventListener('click', function() {
+            fetch('/api/fraud-detection/stop-simulator', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'stopped') {
+                        simulatorRunning = false;
+                        startSimulatorBtn.disabled = false;
+                        stopSimulatorBtn.disabled = true;
+                        logTransaction('Transaction simulator stopped');
+                        updateSystemStatus();
+                        
+                        // If either is now stopped, clear the update interval
+                        if ((!simulatorRunning || !analyzerRunning) && updateInterval) {
+                            clearInterval(updateInterval);
+                            updateInterval = null;
+                        }
+                    }
+                });
+        });
+        
+        // Start analyzer
+        startAnalyzerBtn.addEventListener('click', function() {
+            fetch('/api/fraud-detection/start-analyzer', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'started') {
+                        analyzerRunning = true;
+                        startAnalyzerBtn.disabled = true;
+                        stopAnalyzerBtn.disabled = false;
+                        logTransaction('Fraud analyzer started');
+                        updateSystemStatus();
+                        
+                        // If both are now running, start the update interval
+                        if (simulatorRunning && analyzerRunning && !updateInterval) {
+                            startUpdateInterval();
+                        }
+                    }
+                });
+        });
+        
+        // Stop analyzer
+        stopAnalyzerBtn.addEventListener('click', function() {
+            fetch('/api/fraud-detection/stop-analyzer', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'stopped') {
+                        analyzerRunning = false;
+                        startAnalyzerBtn.disabled = false;
+                        stopAnalyzerBtn.disabled = true;
+                        logTransaction('Fraud analyzer stopped');
+                        updateSystemStatus();
+                        
+                        // If either is now stopped, clear the update interval
+                        if ((!simulatorRunning || !analyzerRunning) && updateInterval) {
+                            clearInterval(updateInterval);
+                            updateInterval = null;
+                        }
+                    }
+                });
+        });
+        
+        // Function to start the update interval
+        function startUpdateInterval() {
+            updateInterval = setInterval(updateData, 1000);
+        }
+        
+        // Function to update all data from server
+        function updateData() {
+            // Get simulator status
+            fetch('/api/fraud-detection/simulator-status')
+                .then(response => response.json())
+                .then(data => {
+                    // Update transaction rate
+                    transactionRateEl.textContent = data.transactions_per_second.toFixed(1);
+                    totalTransactionsEl.textContent = data.total_transactions.toLocaleString();
+                });
+                
+            // Get analyzer status
+            fetch('/api/fraud-detection/analyzer-status')
+                .then(response => response.json())
+                .then(data => {
+                    // Update detection metrics
+                    fraudDetectedEl.textContent = data.total_anomalies.toLocaleString();
+                    
+                    // Update accuracy (f1 score)
+                    const accuracy = data.detection_metrics.f1_score * 100;
+                    detectionAccuracyEl.textContent = accuracy.toFixed(1) + '%';
+                });
+                
+            // Get recent transactions
+            fetch('/api/fraud-detection/recent-transactions')
+                .then(response => response.json())
+                .then(data => {
+                    // Process recent transactions
+                    const transactions = data.transactions;
+                    if (transactions && transactions.length > 0) {
+                        // Log the most recent transaction
+                        const latestTx = transactions[transactions.length - 1];
+                        logTransaction(
+                            `${latestTx.user_id}: ${formatCurrency(latestTx.amount)} (${latestTx.location})`, 
+                            latestTx.is_fraudulent
+                        );
+                    }
+                });
+                
+            // Get recent analyses
+            fetch('/api/fraud-detection/recent-analyses')
+                .then(response => response.json())
+                .then(data => {
+                    const analyses = data.analyses;
+                    if (!analyses || analyses.length === 0) return;
+                    
+                    // Update anomaly chart
+                    const scores = analyses.map(a => a.anomaly_score);
+                    anomalyChart.data.labels = analyses.map(a => a.transaction_id.substring(0, 8));
+                    anomalyChart.data.datasets[0].data = scores;
+                    anomalyChart.data.datasets[1].data = Array(scores.length).fill(currentThreshold);
+                    anomalyChart.update();
+                    
+                    // Update distribution
+                    scoreDistribution = Array(10).fill(0);
+                    analyses.forEach(a => {
+                        const binIndex = Math.min(9, Math.floor(a.anomaly_score * 10));
+                        scoreDistribution[binIndex]++;
+                    });
+                    updateDistributionChart();
+                    
+                    // Process any anomalies
+                    const anomalies = analyses.filter(a => a.is_anomalous);
+                    if (anomalies.length > 0) {
+                        // Get corresponding transactions
+                        fetch('/api/fraud-detection/transactions-by-id', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ ids: anomalies.map(a => a.transaction_id) })
+                        })
+                        .then(response => response.json())
+                        .then(txData => {
+                            // Match transactions with their analyses
+                            txData.transactions.forEach(tx => {
+                                const analysis = anomalies.find(a => a.transaction_id === tx.transaction_id);
+                                if (analysis) {
+                                    // Add fraud alert
+                                    addFraudAlert(tx, analysis);
+                                    
+                                    // Update fraud types
+                                    if (tx.fraud_type === 'unusual_location') {
+                                        fraudTypes.unusual_location++;
+                                    } else if (tx.fraud_type === 'unusual_amount') {
+                                        fraudTypes.unusual_amount++;
+                                    } else if (tx.fraud_type === 'unusual_frequency') {
+                                        fraudTypes.unusual_frequency++;
+                                    } else {
+                                        fraudTypes.other++;
+                                    }
+                                    updateFraudTypesChart();
+                                }
+                            });
+                        });
+                    }
+                });
+        }
+        
+        // Check initial status on page load
+        fetch('/api/fraud-detection/simulator-status')
+            .then(response => response.json())
+            .then(data => {
+                simulatorRunning = data.running;
+                startSimulatorBtn.disabled = simulatorRunning;
+                stopSimulatorBtn.disabled = !simulatorRunning;
+                
+                return fetch('/api/fraud-detection/analyzer-status');
+            })
+            .then(response => response.json())
+            .then(data => {
+                analyzerRunning = data.running;
+                startAnalyzerBtn.disabled = analyzerRunning;
+                stopAnalyzerBtn.disabled = !analyzerRunning;
+                
+                // Update system status
+                updateSystemStatus();
+                
+                // If both are running, start the update interval
+                if (simulatorRunning && analyzerRunning) {
+                    startUpdateInterval();
+                }
+                
+                // Initial log message
+                logTransaction('Fraud detection system initialized');
+            });
+    </script>
+</body>
+</html>
