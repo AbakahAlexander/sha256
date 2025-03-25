@@ -1,97 +1,83 @@
-# GPU-Accelerated Cryptography Suite
+# SHA-256 GPU-Accelerated Demo Platform
 
-This repository contains a comprehensive suite of GPU-accelerated cryptography tools, including SHA-256 benchmarking, password cracking, and Bitcoin mining simulation. All implementations use NVIDIA CUDA for parallel computation, delivering performance improvements of several orders of magnitude compared to CPU-based implementations.
+A suite of demonstrations showcasing GPU-accelerated SHA-256 implementations, including financial fraud detection, AI-driven security monitoring, and Bitcoin mining.
 
-## Project Components
+## Key Features
 
-### 1. SHA-256 Benchmarking Tool
+- **Financial Fraud Detection**: Real-time anomaly detection in financial transactions using GPU-accelerated SHA-256 hashing
+- **CryptoGuardian AI**: Security monitoring for cryptographic operations with threat detection
+- **Bitcoin Mining Demo**: Simple demonstration of SHA-256 mining principles
 
-The SHA-256 benchmarking tool (`sha256_benchmark`) measures the performance of SHA-256 hash computation on GPUs. It's designed to evaluate the raw computational capabilities of different GPU architectures when performing cryptographic operations.
+## System Requirements
 
-**Achieved Results:**
-- Parallel processing of multiple hashes simultaneously
-- Performance of 500+ million hashes per second on modern GPUs
-- Detailed performance metrics and statistical analysis
-
-### 2. Password Cracking with SHA-256
-
-The password cracking component (`sha256_crack`) demonstrates brute-force attacks against password hashes secured with SHA-256. This tool can try hundreds of millions of password combinations per second.
-
-**Achieved Results:**
-- Brute-force cracking of SHA-256 hashed passwords
-- Support for various character sets and password lengths
-- Real-time progress reporting and performance statistics
-- Successfully demonstrated that simple passwords (even with complex hashing) can be broken in seconds or minutes
-
-### 3. Bitcoin Mining Simulator
-
-The Bitcoin mining simulator combines a CUDA-based mining engine with an interactive web interface, demonstrating how cryptocurrency mining works. The system simulates finding blocks by identifying nonce values that produce hashes below a target threshold.
-
-**Achieved Results:**
-- Realistic simulation of Bitcoin's proof-of-work algorithm
-- Interactive web dashboard showing real-time mining statistics
-- Visual representation of hash rate over time
-- Successful discovery of valid nonce values meeting difficulty targets
-
-## Technical Architecture
-
-The project uses a hybrid architecture:
-
-- **Core Mining Engine**: Written in CUDA C/C++ for maximum GPU performance
-- **Web Interface**: Built with Flask (Python) for monitoring and control
-- **Data Visualization**: JavaScript with Chart.js for real-time analytics
-
-## Performance Metrics
-
-| Component | CPU Performance | GPU Performance | Speedup |
-|-----------|----------------|----------------|---------|
-| SHA-256 Hashing | ~10 million hashes/s | ~500 million hashes/s | ~50x |
-| Password Cracking | ~5 million attempts/s | ~400 million attempts/s | ~80x |
-| Bitcoin Mining | ~1 million hashes/s | ~500 million hashes/s | ~500x |
-
-## Security Implications
-
-This project demonstrates several important security concepts:
-
-1. **Password Vulnerability**: Even complex hashing algorithms like SHA-256 are vulnerable to brute-force attacks when using powerful GPUs
-2. **Hardware Acceleration**: General purpose computing on GPUs provides enormous speedups for cryptographic operations
-3. **Mining Economics**: The computational requirements of proof-of-work blockchain systems are substantial and energy-intensive
-
-## Running the Project
-
-### Prerequisites
 - CUDA-capable NVIDIA GPU
-- CUDA Toolkit
+- CUDA Toolkit (tested with versions 11.x and 12.x)
 - Python 3.6+
 - Flask
 
-### Building the Components
+## Quick Start
+
 ```bash
-make all
+# Clone the repository
+git clone <repository-url>
+cd sha256
+
+# Setup and run
+chmod +x setup_and_run.sh
+./setup_and_run.sh
 ```
 
-### Running the Components
-```bash
-# SHA-256 Benchmark
-./sha256_benchmark
-
-# SHA-256 Password Cracker
-./sha256_crack <target_password> <max_length>
-
-# Bitcoin Mining Simulator
-python3 web_server.py
-# Then visit http://localhost:8080 in your browser
+Then open your browser and navigate to:
+```
+http://localhost:8080
 ```
 
-## Future Extensions
+## Financial Fraud Detection
 
-Potential future enhancements include:
-- Multi-GPU support
-- Integration with real cryptocurrency networks
-- Addition of other mining algorithms (Ethash, Equihash, etc.)
-- Support for distributed mining across networks
-- More sophisticated password cracking techniques (dictionary attacks, rules)
+The fraud detection system uses GPU acceleration to analyze financial transactions in real-time, detecting anomalous patterns that could indicate fraudulent activity. The system:
 
-## Conclusion
+- Simulates realistic financial transactions from different user profiles
+- Uses SHA-256 to create digital fingerprints of each transaction
+- Builds behavioral profiles for each user based on transaction history
+- Detects unusual activity patterns through hash-based anomaly scoring
 
-This project successfully demonstrates the power and application of GPU acceleration in cryptography. The implementations achieve performance levels that make them practical for both educational purposes and real-world applications, while highlighting important security considerations in modern cryptographic systems.
+### Key Components
+
+- **Transaction Simulator**: Generates realistic transaction data from different user profiles
+- **Transaction Analyzer**: Processes transactions and detects anomalies
+- **Interactive Dashboard**: Real-time visualization of transaction patterns and fraud alerts
+
+## CryptoGuardian AI
+
+An AI-driven security monitoring system for cryptographic operations. It detects potential threats such as:
+
+- Timing attacks
+- Side-channel vulnerabilities
+- Brute force attempts
+- Dictionary attacks
+
+## CPU Fallback Mode
+
+If CUDA is not available, the system will automatically fall back to CPU-based implementations for all functionality, ensuring compatibility across different environments.
+
+## Project Structure
+
+```
+sha256/
+├── simple_bitcoin_miner.cu     # CUDA implementation of core functionality
+├── web_server.py               # Flask web server
+├── transaction_simulator.py    # Transaction data generator
+├── transaction_analyzer.py     # Transaction analysis engine
+├── crypto_guardian.py          # AI security monitoring
+├── Makefile                    # Build configuration
+├── nvcc_wrapper.sh             # CUDA compiler wrapper
+└── templates/                  # Web UI templates
+    ├── index.html              # Main dashboard
+    ├── fraud_detection.html    # Fraud detection UI
+    └── guardian.html           # Security monitoring UI
+```
+
+## Development Notes
+
+- The CUDA code uses simplified hash implementations to ensure compatibility across different CUDA versions
+- Use `nvcc_wrapper.sh` for portable CUDA compilation across different setups

@@ -1,9 +1,5 @@
 #!/bin/bash
 
-# This is a wrapper script for nvcc that ensures compilation works
-# regardless of where CUDA is installed on the system
-
-# Try to find nvcc in common locations
 NVCC_PATHS=(
     "/usr/local/cuda/bin/nvcc"
     "/usr/bin/nvcc"
@@ -20,7 +16,6 @@ for path in "${NVCC_PATHS[@]}"; do
     fi
 done
 
-# If nvcc wasn't found, try using the PATH
 if [ -z "$NVCC" ]; then
     if command -v nvcc &> /dev/null; then
         NVCC=$(command -v nvcc)
@@ -31,6 +26,5 @@ if [ -z "$NVCC" ]; then
     fi
 fi
 
-# Execute nvcc with all arguments passed to this script
 echo "Using CUDA compiler at: $NVCC"
 $NVCC "$@"
