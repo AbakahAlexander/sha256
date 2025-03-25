@@ -1,83 +1,126 @@
-# SHA-256 GPU-Accelerated Demo Platform
+# SHA-256 GPU-Accelerated Security Platform
 
-A suite of demonstrations showcasing GPU-accelerated SHA-256 implementations, including financial fraud detection, AI-driven security monitoring, and Bitcoin mining.
+A comprehensive security platform demonstrating the power of GPU-accelerated cryptographic operations for financial fraud detection and security monitoring.
 
-## Key Features
+## Project Overview
 
-- **Financial Fraud Detection**: Real-time anomaly detection in financial transactions using GPU-accelerated SHA-256 hashing
-- **CryptoGuardian AI**: Security monitoring for cryptographic operations with threat detection
-- **Bitcoin Mining Demo**: Simple demonstration of SHA-256 mining principles
+This platform showcases how GPU-accelerated SHA-256 hashing can be applied to real-world security challenges. It implements three core demonstrations:
 
-## System Requirements
+1. **Financial Fraud Detection System** - Uses transaction fingerprinting and behavioral analysis
+2. **CryptoGuardian AI Security Monitor** - Detects threats in cryptographic operations
+3. **Bitcoin Mining Demonstration** - Illustrates SHA-256 proof-of-work principles
 
-- CUDA-capable NVIDIA GPU
-- CUDA Toolkit (tested with versions 11.x and 12.x)
+## System Architecture
+
+The platform employs a hybrid architecture that leverages both GPU and CPU resources:
+
+- **GPU Component**: CUDA-based implementation of SHA-256 hash functions, optimized for parallel computation
+- **Web Server**: Flask-based backend that handles API requests and serves the UI
+- **Data Processing Pipeline**: Multi-threaded system for real-time transaction processing
+- **Visualization Layer**: Interactive dashboards for monitoring and analysis
+
+## Technical Components
+
+### GPU-Accelerated SHA-256 Implementation
+
+The core cryptographic functionality is implemented in CUDA C++, providing:
+
+- Simplified SHA-256 hashing algorithm optimized for throughput
+- Memory-efficient transaction fingerprinting
+- Constant-time operations to mitigate timing attacks
+- Multi-threaded execution model with configurable block and thread counts
+- CPU fallback mechanism when CUDA is unavailable
+
+### Financial Fraud Detection System
+
+#### Transaction Simulation Engine
+
+- Generates realistic financial transaction data across different user profiles
+- Models normal behavioral patterns for retail, business, and high-value accounts
+- Simulates location, amount, and frequency patterns specific to each user
+- Injects anomalous transactions at configurable rates for testing
+
+#### Anomaly Detection Algorithm
+
+The system uses a multi-faceted approach to detect fraudulent activity:
+
+- **Hash-Based Fingerprinting**: Each transaction is hashed using SHA-256 to create a unique fingerprint
+- **Historical Pattern Analysis**: User-specific behavior profiles are maintained
+- **Location Anomaly Detection**: Identifies transactions from unusual geographic locations
+- **Amount Anomaly Detection**: Flags unusually large transactions based on user history
+- **Frequency Anomaly Detection**: Detects unusual transaction timing patterns
+- **Hash Pattern Analysis**: Examines similarities between transaction hashes
+
+The detection algorithm assigns weighted anomaly scores based on multiple factors:
+- Location anomaly contributes 30% to the final score
+- Amount anomaly contributes 30% to the final score
+- Frequency anomaly contributes 25% to the final score
+- Hash pattern anomaly contributes 15% to the final score
+
+#### Real-Time Processing Pipeline
+
+- Multi-threaded architecture for transaction handling
+- Thread-safe queuing system for transaction buffering
+- Concurrent analysis of transaction streams
+- Efficient inter-thread communication with minimal locking
+
+### CryptoGuardian AI Security Monitor
+
+#### Threat Detection Methodology
+
+The security monitor uses GPU-accelerated detection for:
+
+- **Timing Attacks**: Detecting variations in cryptographic operation execution times
+- **Side-Channel Attacks**: Identifying potential information leakage
+- **Brute Force Attempts**: Recognizing patterns consistent with exhaustive search
+- **Dictionary Attacks**: Detecting systematic password guessing
+
+#### Anomaly Scoring System
+
+- Real-time anomaly scoring based on cryptographic operation patterns
+- Adaptive thresholding based on historical baseline metrics
+- Severity classification (Low, Medium, High) for detected threats
+- Trend analysis for evolving attack patterns
+
+### Performance Optimizations
+
+- Memory-efficient data structures for high-throughput processing
+- Asynchronous transaction processing to prevent UI blocking
+- Optimized CUDA kernel configurations for different GPU architectures
+- Efficient data transfers between host and device memory
+
+## Technical Specifications
+
+- **GPU Acceleration**: CUDA-based implementation for all cryptographic operations
+- **SHA-256 Implementation**: Simplified for compatibility across CUDA versions
+- **API Architecture**: RESTful API for all monitoring and control functions
+- **Visualization**: Chart.js-based real-time data visualization
+- **Simulation**: Configurable parameters for transaction generation
+- **Analytics**: Real-time metrics calculation for system performance
+
+## Hardware Requirements
+
+- CUDA-capable NVIDIA GPU (compute capability 3.0+)
+- 4GB+ GPU memory recommended for optimal performance
+- 8GB+ system RAM
+- 100MB disk space
+
+## Software Requirements
+
+- CUDA Toolkit 11.0+ (compatible with 12.x)
 - Python 3.6+
-- Flask
+- Flask web framework
+- Modern web browser with JavaScript enabled
 
-## Quick Start
+## Setup and Usage
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd sha256
+To run the SHA-256 GPU-Accelerated Security Platform:
 
-# Setup and run
-chmod +x setup_and_run.sh
-./setup_and_run.sh
-```
-
-Then open your browser and navigate to:
-```
-http://localhost:8080
-```
-
-## Financial Fraud Detection
-
-The fraud detection system uses GPU acceleration to analyze financial transactions in real-time, detecting anomalous patterns that could indicate fraudulent activity. The system:
-
-- Simulates realistic financial transactions from different user profiles
-- Uses SHA-256 to create digital fingerprints of each transaction
-- Builds behavioral profiles for each user based on transaction history
-- Detects unusual activity patterns through hash-based anomaly scoring
-
-### Key Components
-
-- **Transaction Simulator**: Generates realistic transaction data from different user profiles
-- **Transaction Analyzer**: Processes transactions and detects anomalies
-- **Interactive Dashboard**: Real-time visualization of transaction patterns and fraud alerts
-
-## CryptoGuardian AI
-
-An AI-driven security monitoring system for cryptographic operations. It detects potential threats such as:
-
-- Timing attacks
-- Side-channel vulnerabilities
-- Brute force attempts
-- Dictionary attacks
-
-## CPU Fallback Mode
-
-If CUDA is not available, the system will automatically fall back to CPU-based implementations for all functionality, ensuring compatibility across different environments.
-
-## Project Structure
-
-```
-sha256/
-├── simple_bitcoin_miner.cu     # CUDA implementation of core functionality
-├── web_server.py               # Flask web server
-├── transaction_simulator.py    # Transaction data generator
-├── transaction_analyzer.py     # Transaction analysis engine
-├── crypto_guardian.py          # AI security monitoring
-├── Makefile                    # Build configuration
-├── nvcc_wrapper.sh             # CUDA compiler wrapper
-└── templates/                  # Web UI templates
-    ├── index.html              # Main dashboard
-    ├── fraud_detection.html    # Fraud detection UI
-    └── guardian.html           # Security monitoring UI
-```
-
-## Development Notes
-
-- The CUDA code uses simplified hash implementations to ensure compatibility across different CUDA versions
-- Use `nvcc_wrapper.sh` for portable CUDA compilation across different setups
+1. Clone the repository
+2. Run the setup script:
+   ```
+   chmod +x setup_and_run.sh
+   ./setup_and_run.sh
+   ```
+3. Open your browser and navigate to `http://localhost:8080`
+4. Explore the different demo sections through the navigation menu
