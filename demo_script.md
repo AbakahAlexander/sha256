@@ -25,7 +25,7 @@ This demonstration showcases how GPU-accelerated SHA-256 hashing can be used to 
 
 ### 1. System Overview
 
-In this system, we use GPU-accelerated SHA-256 hashing to:
+In this system, I use GPU-accelerated SHA-256 hashing to:
 
 - Generate fingerprints of financial transactions
 - Detect anomalies in transaction patterns
