@@ -176,6 +176,11 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <button id="reset-counts" class="btn btn-sm btn-outline-secondary">Reset Charts</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -730,7 +735,7 @@
                     anomalyChart.data.datasets[1].data = Array(scores.length).fill(currentThreshold);
                     anomalyChart.update();
                     
-                    // Update distribution
+                    // Update distribution - ensure it's properly initialized
                     scoreDistribution = Array(10).fill(0);
                     analyses.forEach(a => {
                         const binIndex = Math.min(9, Math.floor(a.anomaly_score * 10));
@@ -738,8 +743,10 @@
                     });
                     updateDistributionChart();
                     
-                    // Process any anomalies
+                    // Process any anomalies - ensure we're properly finding them
                     const anomalies = analyses.filter(a => a.is_anomalous);
+                    console.log(`Found ${anomalies.length} anomalies out of ${analyses.length} transactions`);
+                    
                     if (anomalies.length > 0) {
                         // Get corresponding transactions
                         fetch('/api/fraud-detection/transactions-by-id', {
@@ -749,6 +756,8 @@
                         })
                         .then(response => response.json())
                         .then(txData => {
+                            console.log(`Found ${txData.transactions.length} matching transactions`);
+                            
                             // Match transactions with their analyses
                             txData.transactions.forEach(tx => {
                                 const analysis = anomalies.find(a => a.transaction_id === tx.transaction_id);
@@ -756,24 +765,70 @@
                                     // Add fraud alert
                                     addFraudAlert(tx, analysis);
                                     
-                                    // Update fraud types
-                                    if (tx.fraud_type === 'unusual_location') {
+                                    // Explicitly log component values for debugging
+                                    console.log(`Components for ${tx.transaction_id}:`, analysis.components);
+                                    
+                                    // Update fraud types - determine fraud type from component scores
+                                    const components = analysis.components;
+                                    if (components.location_anomaly > components.amount_anomaly && 
+                                        components.location_anomaly > components.frequency_anomaly) {
                                         fraudTypes.unusual_location++;
-                                    } else if (tx.fraud_type === 'unusual_amount') {
+                                    } else if (components.amount_anomaly > components.location_anomaly && 
+                                            components.amount_anomaly > components.frequency_anomaly) {
                                         fraudTypes.unusual_amount++;
-                                    } else if (tx.fraud_type === 'unusual_frequency') {
+                                    } else if (components.frequency_anomaly > 0) {
                                         fraudTypes.unusual_frequency++;
                                     } else {
                                         fraudTypes.other++;
                                     }
+                                    
+                                    // Ensure the chart is updated
                                     updateFraudTypesChart();
+                                    
+                                    // Log the current fraud type counts
+                                    console.log("Fraud types:", JSON.stringify(fraudTypes));
                                 }
                             });
+                        })
+                        .catch(error => {
+                            console.error("Error fetching transaction details:", error);
                         });
                     }
+                })
+                .catch(error => {
+                    console.error("Error fetching analysis data:", error);
                 });
         }
-        
+
+        // Add these debug functions after the updateFraudTypesChart function
+        function resetFraudTypeCounts() {
+            fraudTypes.unusual_location = 0;
+            fraudTypes.unusual_amount = 0;
+            fraudTypes.unusual_frequency = 0;
+            fraudTypes.other = 0;
+            updateFraudTypesChart();
+        }
+
+        // Add a button to reset fraud types after the control panel
+        document.addEventListener('DOMContentLoaded', function() {
+            const controlPanel = document.querySelector('.card-body');
+            const debugRow = document.createElement('div');
+            debugRow.className = 'row mt-3';
+            debugRow.innerHTML = `
+                <div class="col-12">
+                    <button id="reset-counts" class="btn btn-sm btn-outline-secondary">Reset Charts</button>
+                </div>
+            `;
+            controlPanel.appendChild(debugRow);
+            
+            document.getElementById('reset-counts').addEventListener('click', function() {
+                resetFraudTypeCounts();
+                scoreDistribution = Array(10).fill(0);
+                updateDistributionChart();
+                console.log("Charts reset");
+            });
+        });
+
         // Check initial status on page load
         fetch('/api/fraud-detection/simulator-status')
             .then(response => response.json())
@@ -801,6 +856,30 @@
                 // Initial log message
                 logTransaction('Fraud detection system initialized');
             });
+
+        // Add this function somewhere in your JavaScript
+        function updateDetailedPerformance() {
+            // Get detailed performance metrics
+            fetch('/api/fraud-detection/analyzer-status')
+                .then(response => response.json())
+                .then(data => {
+                    console.log("Performance metrics:", {
+                        "TPS": data.transactions_per_second.toFixed(2),
+                        "Total analyzed": data.total_analyzed,
+                        "Queue size": data.queue_size,
+                        "Elapsed (s)": data.elapsed_time.toFixed(1)
+                    });
+                    
+                    // If you want to display this in the UI:
+                    document.getElementById('detailed-performance').innerHTML = 
+                        `<strong>Processing:</strong> ${data.transactions_per_second.toFixed(1)} tx/s | 
+                         <strong>Queue:</strong> ${data.queue_size} | 
+                         <strong>Total:</strong> ${data.total_analyzed}`;
+                });
+        }
+
+        // Call this every 2 seconds
+        setInterval(updateDetailedPerformance, 2000);
     </script>
 </body>
 </html>

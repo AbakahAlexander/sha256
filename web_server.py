@@ -254,6 +254,17 @@ if __name__ == '__main__':
         print(f"Error importing CryptoGuardian: {e}", file=sys.stderr)
         print("Guardian functionality will not be available")
     
-    # Start the Flask server with debugging enabled
-    print("Starting Flask server...")
-    app.run(host='0.0.0.0', port=8080, debug=True)
+    # Try to start on port 8080, fall back to other ports if needed
+    ports = [8080, 8081, 8082, 5000]
+    
+    for port in ports:
+        try:
+            print(f"Trying to start Flask server on port {port}...")
+            app.run(host='0.0.0.0', port=port, debug=True)
+            break  # If successful, exit the loop
+        except OSError as e:
+            print(f"Port {port} is not available: {e}")
+            if port == ports[-1]:
+                print("All port attempts failed. Please free up a port manually.")
+                sys.exit(1)
+            continue
