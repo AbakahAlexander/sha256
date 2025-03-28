@@ -62,7 +62,7 @@ def transaction_processing_task():
         transaction = transaction_simulator.get_transaction(block=True, timeout=1.0)
         if transaction:
             transaction_analyzer.add_transaction(transaction)
-        time.sleep(0.01)  # Small delay to prevent CPU hogging
+        time.sleep(0.01)  
 
 @app.route('/')
 def index():
@@ -126,7 +126,7 @@ def get_status():
 def start_transaction_simulator():
     """Start the transaction simulator"""
     result = transaction_simulator.start_simulation()
-    # Also start the transaction processing thread if analyzer is running
+  
     if result and transaction_analyzer.is_analyzing:
         start_transaction_processing()
     return jsonify({"status": "started" if result else "already_running"})
@@ -135,7 +135,7 @@ def start_transaction_simulator():
 def stop_transaction_simulator():
     """Stop the transaction simulator"""
     result = transaction_simulator.stop_simulation()
-    # If we're also stopping the analyzer, stop the processing thread
+    
     if result:
         stop_transaction_processing()
     return jsonify({"status": "stopped" if result else "not_running"})
@@ -144,7 +144,7 @@ def stop_transaction_simulator():
 def start_transaction_analyzer():
     """Start the transaction analyzer"""
     result = transaction_analyzer.start_analyzer()
-    # Also start the transaction processing thread if simulator is running
+ 
     if result and transaction_simulator.is_running:
         start_transaction_processing()
     return jsonify({"status": "started" if result else "already_running"})
@@ -153,7 +153,7 @@ def start_transaction_analyzer():
 def stop_transaction_analyzer():
     """Stop the transaction analyzer"""
     result = transaction_analyzer.stop_analyzer()
-    # If we're also stopping the simulator, stop the processing thread
+   
     if result:
         stop_transaction_processing()
     return jsonify({"status": "stopped" if result else "not_running"})
@@ -222,7 +222,7 @@ def get_transactions_by_id():
     """Get transactions by their IDs"""
     data = request.get_json()
     if 'ids' in data and isinstance(data['ids'], list):
-        # Filter transactions from history that match the requested IDs
+      
         matching_transactions = []
         for tx in transaction_simulator.transactions_history:
             if tx['transaction_id'] in data['ids']:
@@ -232,11 +232,10 @@ def get_transactions_by_id():
     return jsonify({"status": "error", "message": "Invalid ID list"})
 
 if __name__ == '__main__':
-    # Create templates directory if it doesn't exist
+    
     os.makedirs('templates', exist_ok=True)
     os.makedirs('static', exist_ok=True)
     
-    # Ensure template files exist
     if not os.path.exists('templates/index.html'):
         with open('templates/index.html', 'w') as f:
             f.write('''<!DOCTYPE html>
@@ -244,7 +243,7 @@ if __name__ == '__main__':
 ...HTML template content (omitted for brevity)...
 </html>''')
     
-    # Try to import and integrate CryptoGuardian
+   
     try:
         print("Importing CryptoGuardian...")
         from crypto_guardian import integrate_guardian
@@ -254,14 +253,14 @@ if __name__ == '__main__':
         print(f"Error importing CryptoGuardian: {e}", file=sys.stderr)
         print("Guardian functionality will not be available")
     
-    # Try to start on port 8080, fall back to other ports if needed
+
     ports = [8080, 8081, 8082, 5000]
     
     for port in ports:
         try:
             print(f"Trying to start Flask server on port {port}...")
             app.run(host='0.0.0.0', port=port, debug=True)
-            break  # If successful, exit the loop
+            break 
         except OSError as e:
             print(f"Port {port} is not available: {e}")
             if port == ports[-1]:
