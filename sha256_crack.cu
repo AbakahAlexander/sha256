@@ -11,9 +11,9 @@
 #define THREADS_PER_BLOCK 256
 #define BLOCKS 512
 #define MAX_PASSWORD_LEN 8
-#define CHARSET_SIZE 36  // a-z and 0-9
+#define CHARSET_SIZE 36  
 
-// SHA-256 constants in device constant memory
+
 __device__ __constant__ uint32_t k[64] = {
     0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
     0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
@@ -33,18 +33,18 @@ __device__ __constant__ uint32_t k[64] = {
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2
 };
 
-// Character set for password generation
+
 __device__ __constant__ char charset[] = "abcdefghijklmnopqrstuvwxyz0123456789";
 
-// The target hash
+
 __device__ __constant__ uint32_t target_hash[8];
 
-// Rotation function for SHA-256
+
 __device__ uint32_t rotr(uint32_t x, uint32_t n) {
     return (x >> n) | (x << (32 - n));
 }
 
-// Host version of rotation function (for CPU)
+
 __host__ uint32_t h_rotr(uint32_t x, uint32_t n) {
     return (x >> n) | (x << (32 - n));
 }
@@ -112,8 +112,7 @@ __host__ void h_sha256_transform(const uint8_t *data, uint32_t *hash_out) {
     uint32_t a = 0x6a09e667, b = 0xbb67ae85, c = 0x3c6ef372, d = 0xa54ff53a;
     uint32_t e = 0x510e527f, f = 0x9b05688c, g = 0x1f83d9ab, h = 0x5be0cd19;
 
-    // Host copy of k constants
-    uint32_t host_k[64] = {
+        uint32_t host_k[64] = {
         0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
         0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
         0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
