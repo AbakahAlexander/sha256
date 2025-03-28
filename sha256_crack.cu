@@ -36,7 +36,7 @@ __device__ __constant__ uint32_t k[64] = {
 // Character set for password generation
 __device__ __constant__ char charset[] = "abcdefghijklmnopqrstuvwxyz0123456789";
 
-// The target hash we're trying to crack (stored in constant memory)
+// The target hash
 __device__ __constant__ uint32_t target_hash[8];
 
 // Rotation function for SHA-256
@@ -226,17 +226,16 @@ __global__ void crack_password(uint64_t start_index, uint64_t *result_index, cha
     uint64_t thread_id = blockIdx.x * blockDim.x + threadIdx.x;
     uint64_t password_index = start_index + thread_id;
     
-    // If a password is already found, exit early
+  
     if (*password_found) return;
     
-    // Buffer for the generated password
     char password[MAX_PASSWORD_LEN + 1];
     int length;
     
-    // Generate the password for this thread
+
     generate_password(password_index, password, max_password_len, &length);
     
-    // Prepare the hash input
+    
     uint8_t input[64];
     prepare_input(password, length, input);
     
@@ -246,7 +245,7 @@ __global__ void crack_password(uint64_t start_index, uint64_t *result_index, cha
     
     // Check if hash matches target
     if (compare_hashes(hash, target_hash)) {
-        // Found a match! Store the result
+      
         *password_found = true;
         *result_index = password_index;
         
@@ -259,7 +258,7 @@ __global__ void crack_password(uint64_t start_index, uint64_t *result_index, cha
 
 // Compute SHA-256 hash of a string on the host
 void compute_sha256(const char *input, uint32_t *hash) {
-    // Initialize hash values
+
     hash[0] = 0x6a09e667;
     hash[1] = 0xbb67ae85;
     hash[2] = 0x3c6ef372;
@@ -269,7 +268,7 @@ void compute_sha256(const char *input, uint32_t *hash) {
     hash[6] = 0x1f83d9ab;
     hash[7] = 0x5be0cd19;
     
-    // Prepare the input block with padding
+  
     uint8_t h_input[64] = {0};
     int len = strlen(input);
     memcpy(h_input, input, len);
@@ -291,14 +290,14 @@ void compute_sha256(const char *input, uint32_t *hash) {
 }
 
 int main(int argc, char **argv) {
-    // Default password to crack
+
     const char *password_to_crack = "abc123";
     int max_len = 6;
     bool demo_mode = true;
     
-    // Parse command line arguments
+   
     if (argc > 1) {
-        // If a hash is provided, use it as target
+       
         if (argc >= 9 && strcmp(argv[1], "--hash") == 0) {
             demo_mode = false;
             uint32_t hash[8];
@@ -307,7 +306,7 @@ int main(int argc, char **argv) {
             }
             cudaMemcpyToSymbol(target_hash, hash, sizeof(uint32_t) * 8);
         }
-        // If a password is provided, hash it and then crack it
+     
         else {
             password_to_crack = argv[1];
             if (argc > 2) {
@@ -316,7 +315,7 @@ int main(int argc, char **argv) {
         }
     }
     
-    // If in demo mode, compute the hash of the password
+    
     if (demo_mode) {
         uint32_t hash[8];
         compute_sha256(password_to_crack, hash);
@@ -328,11 +327,11 @@ int main(int argc, char **argv) {
         }
         printf("\n\n");
         
-        // Copy hash to device constant memory
+      
         cudaMemcpyToSymbol(target_hash, hash, sizeof(uint32_t) * 8);
     }
     
-    // Allocate device memory for results
+    
     uint64_t *d_result_index;
     char *d_result_password;
     bool *d_password_found;
@@ -359,7 +358,7 @@ int main(int argc, char **argv) {
     printf("Starting password crack (max length: %d)...\n", max_len);
     cudaEventRecord(start);
     
-    // Calculate search space size (sum of CHARSET_SIZE^i for i=1 to max_len)
+   
     uint64_t search_space = 0;
     uint64_t charset_size_power = 1;
     for (int i = 1; i <= max_len; i++) {
@@ -384,12 +383,11 @@ int main(int argc, char **argv) {
         // Launch the kernel
         crack_password<<<BLOCKS, THREADS_PER_BLOCK>>>(start_index, d_result_index, d_result_password, max_len, d_password_found);
         
-        // Check if password found every 10 batches or if last batch
+       
         if ((i + 1) % 10 == 0 || i == num_batches - 1) {
             cudaMemcpy(&h_password_found, d_password_found, sizeof(bool), cudaMemcpyDeviceToHost);
         }
-        
-        // Update progress every second
+
         passwords_tried += batch_size;
         batches_completed++;
         time_t now = time(NULL);
@@ -404,18 +402,17 @@ int main(int argc, char **argv) {
             fflush(stdout);
         }
         
-        // If found, break early
+     
         if (h_password_found) break;
     }
     
-    // Stop timer
+   
     cudaEventRecord(stop);
     cudaEventSynchronize(stop);
     
     float elapsed_ms;
     cudaEventElapsedTime(&elapsed_ms, start, stop);
     
-    // Get the result if found
     if (h_password_found) {
         cudaMemcpy(&h_result_index, d_result_index, sizeof(uint64_t), cudaMemcpyDeviceToHost);
         cudaMemcpy(h_result_password, d_result_password, MAX_PASSWORD_LEN + 1, cudaMemcpyDeviceToHost);
